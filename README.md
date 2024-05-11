@@ -1,1 +1,1 @@
-# spotify-weekly-recommenders
+# spotify-weekly-recommender

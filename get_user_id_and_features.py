@@ -1,8 +1,8 @@
+import json
 import spotipy
 import numpy as np
 from set_env import set_credentials
 from spotipy.oauth2 import SpotifyOAuth
-
 
 def get_user_top_tracks(sp, n_tracks=10, time_range='short_term'):
     # Define variables
@@ -23,7 +23,7 @@ def get_user_top_tracks(sp, n_tracks=10, time_range='short_term'):
         # Print track name and artists
         print(f"{i}. {track['name']} by {', '.join(artist['name'] for artist in track['artists'])}")
         # Append track URI to the list
-        tracks.append(track['uri'])
+        tracks.append(track['id'])
 
     return tracks
 
@@ -32,19 +32,22 @@ def get_mean_features(sp, tracks):
     audio_features = sp.audio_features(tracks)
 
     # Extract numeric audio features
-    numeric_audio_features = [{k: v for k, v in track.items() if isinstance(v, (int, float))} for track in audio_features]
+    numeric_audio_features = [{k: v for k, v in track.items() if isinstance(v, (int, float)) and k not in ['tempo', 'duration_ms', 'mode', 'key']} for track in audio_features]
 
     # Extract numeric values into an array
-    features_array = [[track[param] for param in track if isinstance(track[param], (int, float))] for track in numeric_audio_features]
+    features_array = np.array([[track[param] for param in track if isinstance(track[param], (int, float))] for track in numeric_audio_features])
+
+    # Normalize the features
+    normalized_features = np.apply_along_axis(lambda x: x / np.linalg.norm(x), 1, features_array)
 
     # Return mean features
-    return [np.mean(param_values) for param_values in np.array(features_array).T]
+    return np.mean(normalized_features, axis=0).tolist()
 
 def main():    
     # Set Spotify credentials
     set_credentials()
 
-    # Define scope for Spotify API access (check https://developer.spotify.com/documentation/web-api/concepts/scopes for reference)
+    # Define scope for Spotify API access
     scope = "user-top-read"
 
     # Initialize Spotipy client
@@ -52,14 +55,19 @@ def main():
 
     # Define parameters for getting user top tracks
     n_tracks = 10
-    time_range = 'short_term' # 'short_term' == 1 month | 'medium_term' == 6 months | 'long_term' == 12 months
+    time_range = 'short_term'
 
-    # Get the user top tracks in a given period and compute their mean features
-    tracks_uri = get_user_top_tracks(sp, n_tracks, time_range)
-    mean_features = get_mean_features(sp, tracks_uri)
+    # Get the user's top tracks in a given period and compute their mean features
+    user_tracks_id = get_user_top_tracks(sp, n_tracks, time_range)
+    user_mean_features = get_mean_features(sp, user_tracks_id)
 
-    # Print mean features
-    print("\nMean Features of Top Tracks:", mean_features)
+    # Get user ID and make an array [UserID, Features]
+    user_id = sp.me()['id']
+    user_data = [user_id, user_mean_features]
+
+    # Write user data to a JSON file
+    with open('user_id_and_features.json', 'w') as json_file:
+        json.dump(user_data, json_file)
 
 if __name__ == "__main__":
     main()

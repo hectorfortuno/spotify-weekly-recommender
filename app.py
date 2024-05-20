@@ -3,14 +3,15 @@ import uuid
 from flask import Flask, redirect, request, session, url_for
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyOAuth
-import set_env
+from set_env import client_id, client_secret
+from . import new_user_main
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
 # Configuration
-SPOTIPY_CLIENT_ID = set_env.client_id()
-SPOTIPY_CLIENT_SECRET = set_env.client_secret()
+SPOTIPY_CLIENT_ID = client_id
+SPOTIPY_CLIENT_SECRET = client_secret
 SPOTIPY_REDIRECT_URI = 'http://127.0.0.1:5000/callback/'
 
 app.config['SPOTIPY_CLIENT_ID'] = SPOTIPY_CLIENT_ID

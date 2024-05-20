@@ -2,3 +2,5 @@ __pycache__/set_env.cpython-39.pyc
 .cache
 __pycache__/app.cpython-39.pyc
 set_env.py
+__pycache__/db_utils.cpython-39.pyc
+__pycache__/spotify_utils.cpython-39.pyc

@@ -38,10 +38,12 @@ def update_playlists():
         spotify_tracks_and_features = get_features(cur)
 
         # Obtain recommendations
-        recommendations = get_k_similar_tracks(user_id_and_features, spotify_tracks_and_features, k=20)
+        recommendations = get_k_similar_tracks(user_id_and_features, spotify_tracks_and_features, k=30)
 
         # Create playlist
         update_playlist(sp, playlist_id, recommendations)
+
+        print(f'{username} playlist updated correctly!')
 
     conn.close()
 

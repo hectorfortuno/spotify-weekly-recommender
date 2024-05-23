@@ -1,1 +1,0 @@
-from .new_user import main_with_args as new_user_main

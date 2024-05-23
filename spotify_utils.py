@@ -3,20 +3,24 @@
 """
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+from spotipy import Spotify
 
 
 def get_k_similar_tracks(user_id_and_features, spotify_tracks_and_features, k=20):
-    # Extract user features and reshape to be 2D
-    user_features = [user_id_and_features[1]]
+
+    user_top_tracks = user_id_and_features[0]
+    user_features = user_id_and_features[1]
 
     # Extract features from spotify tracks features
     spotify_features = [track[1] for track in spotify_tracks_and_features]
 
     # Compute cosine similarity between mean features of user's top tracks and features of Spotify tracks from different genres
-    similarities = cosine_similarity(user_features, spotify_features)[0]
+    similarities = []
+    for feature in spotify_features:
+        similarities.append(cosine_similarity([user_features], [feature])[0])
 
     # Filter out tracks that are in user's top tracks
-    filtered_top_tracks = [track for i, track in enumerate(spotify_tracks_and_features) if track[0] not in user_id_and_features[0]]
+    filtered_top_tracks = [track for i, track in enumerate(spotify_tracks_and_features) if track[0] not in user_top_tracks]
 
     # Sort remaining tracks based on similarity to user's top tracks
     sorted_tracks = sorted(zip(filtered_top_tracks, similarities), key=lambda x: x[1], reverse=True)
@@ -70,6 +74,11 @@ def get_spotify_tracks(sp, playlists_per_genre=1, tracks_per_playlist=5):
             all_track_ids.extend(track_ids)
 
     return all_track_ids
+
+
+def get_tracks_from_playlist(sp, playlist_id, limit=100):
+    tracks = sp.playlist_tracks(playlist_id, limit=limit)
+    return [item['track']['id'] for item in tracks['items']]
 
 
 def get_spotify_features(sp, track_ids):
@@ -129,13 +138,13 @@ def get_mean_features(sp, tracks):
     normalized_features = np.apply_along_axis(lambda x: x / np.linalg.norm(x), 1, features_array)
 
     # Return mean features
-    return np.mean(normalized_features, axis=0).tolist()
+    return [tracks, np.mean(normalized_features, axis=0).tolist()]
 
 
 def create_playlist(sp, userid, tracks):
 
     # Create a playlist with the desired name and description
-    playlist_name = "DRCAV - Recommendations 19/05/2024"
+    playlist_name = "DRCAV - Fresh Recommendations"
     playlist_description = "Playlist created with the DRCAV's project recommendations."
     playlist = sp.user_playlist_create(user=userid, name=playlist_name, description=playlist_description, public=False)
 
@@ -148,3 +157,8 @@ def create_playlist(sp, userid, tracks):
 def update_playlist(sp, playlist_id, tracks):
 
     sp.playlist_replace_items(playlist_id=playlist_id, items=tracks)
+
+
+def get_userid(access_token):
+    sp = Spotify(auth=access_token)
+    return sp.me()['id']

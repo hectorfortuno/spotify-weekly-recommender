@@ -2,7 +2,7 @@ from spotipy import Spotify
 import mariadb
 
 from spotify_utils import get_user_top_tracks, get_mean_features, get_k_similar_tracks, create_playlist
-from db_utils import get_features, add_user, user_exists, get_config
+from db_utils import get_features, add_user, user_exists, get_config, get_user_info
 
 
 def main_with_args(access_token):
@@ -18,9 +18,9 @@ def main_with_args(access_token):
     cur = conn.cursor()
     cur.execute("USE recommender;")
 
-    if user_exists(cur, userid):
+    if not user_exists(cur, userid):
 
-        username = sp.me()['username']
+        username = sp.me()['display_name']
 
         # Get user music tastes
         n_tracks = 10
@@ -37,15 +37,17 @@ def main_with_args(access_token):
         recommendations = get_k_similar_tracks(user_id_and_features, spotify_tracks_and_features, k=20)
 
         # Create playlist
-        playlist_id = create_playlist(sp, recommendations)
+        playlist_id = create_playlist(sp, userid, recommendations)
 
         # Insert user in db
         add_user(cur, userid, username, access_token, playlist_id)
-
+        
+        conn.commit()
         conn.close()
-        return None
+        return username, 0
     else:
+        (_, username, _, _) = get_user_info(cur, userid)
         conn.close()
-        return -1
+        return username, 1
 
 
